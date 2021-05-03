@@ -26,6 +26,7 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
   bool isAuthMessagePass = false;
   bool isOtaAuthCompleted = false;
   bool _isOtaProgress = false;
+  bool _isSettingCompleted = false;
 
   List<int> otaMessage = [];
   List<int> otaHmac = [];
@@ -34,7 +35,7 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
   StreamSubscription? _deviceStateStreamSubscription;
   StreamSubscription? _otaAuthStreamSubscription;
   StreamSubscription? _indexSubscription;
-
+  StreamSubscription? _otaControlPointSubscription;
   BluetoothDevice? _bluetoothDevice;
 
   late BluetoothCharacteristic binWriteCharacteristic;
@@ -65,6 +66,7 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
     _deviceStateStreamSubscription?.cancel();
     _otaAuthStreamSubscription?.cancel();
     _indexSubscription?.cancel();
+    _otaControlPointSubscription?.cancel();
     super.dispose();
   }
 
@@ -86,6 +88,25 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
             progressTimeText = (endTime - startTime).toString();
           });
 
+          _bluetoothDevice?.requestMtu(20);
+          _bluetoothDevice?.disconnect().then((value) {
+            showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) {
+                  return WillPopScope(
+                    onWillPop: () async {
+                      return false;
+                    },
+                    child: AlertDialog(
+                      title: Text("알림"),
+                      content: Text("OTA 업데이트 작업이 완료되었습니다."),
+                      actions: [TextButton(onPressed: () {}, child: Text("확인"))],
+                    ),
+                  );
+                });
+            // Get.back();
+          });
         } else {
           binWriteCharacteristic.write(chunks[_index]);
         }
@@ -109,13 +130,13 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
               setState(() {
                 isOtaAuthCompleted = true;
               });
-              Get.snackbar("알림", "인증 성공");
+              Get.snackbar("알림", "인증 성공", backgroundColor: Colors.green);
             } else {
               setState(() {
                 isAuthMessagePass = false;
                 isOtaAuthCompleted = false;
               });
-              Get.snackbar("알림", "인증 실패");
+              Get.snackbar("알림", "인증 실패", backgroundColor: Colors.red);
             }
           }
         }
@@ -188,9 +209,24 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
 
           await otaAuthCharacteristic.setNotifyValue(true);
           await indexNotifyCharacteristic.setNotifyValue(true);
+          await binSizeWriteCharacteristic.setNotifyValue(true);
 
           listenOtaIndexStream();
           listenOtaAuthStream();
+          _otaControlPointSubscription = binSizeWriteCharacteristic.value.listen((event) {
+            if (event.length > 0) {
+              if (event[0] == 0x02 && event[3] == 0x03) {
+                if (event[1] == 0x00) {
+                  if (event[2] == 0x11) {
+                    Get.snackbar("알림", "준비 설정 완료", backgroundColor: Colors.green);
+                    setState(() {
+                      _isSettingCompleted = true;
+                    });
+                  }
+                }
+              }
+            }
+          });
         });
       }
     });
@@ -222,240 +258,304 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
       appBar: AppBar(
         title: Text("블루투스 OTA 업데이트"),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ListTile(
-              title: Text("업데이트 파일 선택"),
-              subtitle: Text(""),
-              onTap: () async {
-                FilePickerResult? result = await FilePicker.platform.pickFiles();
-                if (result != null) {
-                  print(result.files.single.name);
-                  if (!result.files.single.name!.contains(".bin")) {
-                    setState(() {
-                      isUpdateFileRead = false;
-                    });
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ListTile(
+                  title: Text("업데이트 파일 선택"),
+                  subtitle: Text(""),
+                  onTap: () async {
+                    FilePickerResult? result = await FilePicker.platform.pickFiles();
+                    if (result != null) {
+                      print(result.files.single.name);
+                      if (!result.files.single.name!.contains(".bin")) {
+                        setState(() {
+                          isUpdateFileRead = false;
+                        });
 
-                    Get.snackbar("오류", "올바른 파일을 선택해주세요", backgroundColor: Colors.orangeAccent);
-                    return;
-                  }
-                  File file = File(result.files.single.path!);
-                  readBinFile(file);
-                } else {
-                  // User canceled the picker
-                }
-              },
-            ),
-            Text("파일 읽기 상태"),
-            Container(
-              height: 64,
-              width: 120,
-              child: Center(child: Text("파일 읽기 상태")),
-              color: isUpdateFileRead ? Colors.green : Colors.red,
-            ),
-            Divider(),
-            Text("디바이스 상태"),
-            Container(
-              color: isDeviceConnected ? Colors.green : Colors.grey,
-              padding: EdgeInsets.all(16),
-              child: Text("연결상태"),
-            ),
-            Divider(),
-            SizedBox(
-              height: 120,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _textEditingController,
-                      maxLength: 20,
-                      minLines: 1,
-                      maxLines: 1,
-                      style: TextStyle(fontSize: 24),
-                      decoration: InputDecoration(
-                          hintText: "인증 암호 입력",
-                          suffixIcon: IconButton(
-                            icon: Icon(Icons.clear),
-                            onPressed: () {
-                              _textEditingController.clear();
-                            },
-                          )),
-                    ),
-                  ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      child: MaterialButton(
-                        minWidth: 160,
-                        onPressed: _isOtaProgress ? null :() async {
-                          if (_textEditingController.text.length > 0) {
-                            await otaAuthCharacteristic.write([0x02, 0x00, 0x03]);
-                          } else {
-                            Get.defaultDialog(content: Text("메세지를 입력하세요"));
-                          }
-                        },
-                        child: Text("인증"),
-                        color: Colors.grey,
+                        Get.snackbar("오류", "올바른 파일을 선택해주세요", backgroundColor: Colors.orangeAccent);
+                        return;
+                      }
+                      File file = File(result.files.single.path!);
+                      readBinFile(file);
+                    } else {
+                      // User canceled the picker
+                    }
+                  },
+                ),
+                Divider(
+                  color: Colors.grey,
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text("파일 읽기 상태"),
+                          Container(
+                            padding: EdgeInsets.all(16),
+                            child: Center(child: Text("파일 읽기 상태")),
+                            color: isUpdateFileRead ? Colors.green : Colors.red,
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            Text("인증 상태"),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      color: isAuthMessagePass ? Colors.green : Colors.grey,
-                      padding: EdgeInsets.all(16),
-                      child: Text("1차"),
+                    SizedBox(
+                      width: 16,
+                    ),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text("디바이스 상태"),
+                          Container(
+                            color: isDeviceConnected ? Colors.green : Colors.grey,
+                            padding: EdgeInsets.all(16),
+                            child: Center(child: Text("연결상태")),
+                          ),
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+                Divider(
+                  color: Colors.grey,
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: SizedBox(
+                    height: 120,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _textEditingController,
+                            maxLength: 20,
+                            minLines: 1,
+                            maxLines: 1,
+                            style: TextStyle(fontSize: 24),
+                            obscureText: true,
+                            decoration: InputDecoration(
+                                hintText: "인증 암호 입력",
+                                suffixIcon: IconButton(
+                                  icon: Icon(Icons.clear),
+                                  onPressed: () {
+                                    _textEditingController.clear();
+                                  },
+                                )),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 16,
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 24),
+                            child: MaterialButton(
+                              onPressed: _isOtaProgress
+                                  ? null
+                                  : () async {
+                                      if (_textEditingController.text.length > 0) {
+                                        await otaAuthCharacteristic.write([0x02, 0x00, 0x03]);
+                                      } else {
+                                        Get.defaultDialog(content: Text("메세지를 입력하세요"));
+                                      }
+                                    },
+                              child: Text(
+                                "인증",
+                                style: TextStyle(fontSize: 24),
+                              ),
+                              color: Colors.orange,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(
-                    width: 24,
+                ),
+                Text("인증 상태"),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          color: isAuthMessagePass ? Colors.green : Colors.grey,
+                          padding: EdgeInsets.all(16),
+                          child: Text("1차"),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 24,
+                      ),
+                      Expanded(
+                        child: Container(
+                          color: isOtaAuthCompleted ? Colors.green : Colors.grey,
+                          padding: EdgeInsets.all(16),
+                          child: Text("2차"),
+                        ),
+                      ),
+                    ],
                   ),
-                  Expanded(
-                    child: Container(
-                      color: isOtaAuthCompleted ? Colors.green : Colors.grey,
-                      padding: EdgeInsets.all(16),
-                      child: Text("2차"),
+                ),
+                Divider(
+                  color: Colors.grey,
+                ),
+                Text("사전설정"),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: MaterialButton(
+                          padding: EdgeInsets.all(16),
+                          onPressed: _isOtaProgress || _isSettingCompleted
+                              ? null
+                              : () async {
+                                  if (isOtaAuthCompleted) {
+                                    if (isUpdateFileRead) {
+                                      await _bluetoothDevice?.requestMtu(chunkSize);
+                                      await Future.delayed(Duration(seconds: 1));
+                                      await binSizeWriteCharacteristic.write([
+                                        (totalBinSize >> 24) & 0xFF,
+                                        (totalBinSize >> 16) & 0xFF,
+                                        (totalBinSize >> 8) & 0xFF,
+                                        (totalBinSize) & 0xFF,
+                                        (chunksLength.toInt() >> 24) & 0xFF,
+                                        (chunksLength.toInt() >> 16) & 0xFF,
+                                        (chunksLength.toInt() >> 8) & 0xFF,
+                                        (chunksLength.toInt()) & 0xFF,
+                                      ]);
+                                    } else {
+                                      Get.snackbar("알림", "업데이트 파일을 선택해주세요", backgroundColor: Colors.red[100]);
+                                    }
+                                  } else {
+                                    Get.snackbar("인증오류", "인증을 완료해주세요", backgroundColor: Colors.red[100]);
+                                  }
+                                },
+                          color: isDeviceConnected ? Colors.brown : Colors.grey,
+                          child: Text(
+                            'OTA 준비',
+                            style: TextStyle(fontSize: 24),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: MaterialButton(
+                      minWidth: MediaQuery.of(context).size.width,
+                      height: 72,
+                      child: Text(
+                        "보내기",
+                        style: TextStyle(fontSize: 24),
+                      ),
+                      color: Colors.blue,
+                      onPressed: !_isOtaProgress
+                          ? () async {
+                              if (isOtaAuthCompleted && isUpdateFileRead) {
+                                if (!_isOtaProgress) {
+                                  startTime = DateTime.now().millisecondsSinceEpoch;
+                                  await binWriteCharacteristic.write(chunks[0]);
+                                }
+                                _isOtaProgress = true;
+                              } else {
+                                Get.snackbar("인증오류", "인증을 완료해주세요", backgroundColor: Colors.red[100]);
+                              }
+                            }
+                          : null),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.all(15.0),
+                      child: Center(
+                        child: CircularPercentIndicator(
+                          radius: 240.0,
+                          lineWidth: 24.0,
+                          circularStrokeCap: CircularStrokeCap.round,
+                          percent: _percent,
+                          progressColor: Colors.green,
+                          center: Text(
+                            "${(_percent * 100).toStringAsFixed(1)} %",
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            Divider(),
-            Text("사전설정"),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: MaterialButton(
-                      onPressed: _isOtaProgress ? null :() async {
-                        if (isOtaAuthCompleted) {
-                          await _bluetoothDevice?.requestMtu(chunkSize);
-                        } else {
-                          Get.snackbar("인증오류", "인증을 완료해주세요", backgroundColor: Colors.red[100]);
-                        }
-                      },
-                      color: isDeviceConnected ? Colors.blue : Colors.grey,
-                      child: Text('설정1'),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Text(
+                        "Now/Total: $progressText 코드 조각",
+                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
                     ),
-                  ),
-                  SizedBox(
-                    width: 24,
-                  ),
-                  Expanded(
-                    child: MaterialButton(
-                      onPressed: _isOtaProgress ? null :() async {
-                        if (isOtaAuthCompleted) {
-                          if (isUpdateFileRead) {
-                            await binSizeWriteCharacteristic.write([
-                              (totalBinSize >> 24) & 0xFF,
-                              (totalBinSize >> 16) & 0xFF,
-                              (totalBinSize >> 8) & 0xFF,
-                              (totalBinSize) & 0xFF,
-                              (chunksLength.toInt() >> 24) & 0xFF,
-                              (chunksLength.toInt() >> 16) & 0xFF,
-                              (chunksLength.toInt() >> 8) & 0xFF,
-                              (chunksLength.toInt()) & 0xFF,
-                            ]);
-                          } else {
-                            Get.snackbar("알림", "업데이트 파일을 선택해주세요", backgroundColor: Colors.red[100]);
-                          }
-                        } else {
-                          Get.snackbar("인증오류", "인증을 완료해주세요", backgroundColor: Colors.red[100]);
-                        }
-                      },
-                      color: isDeviceConnected ? Colors.blue : Colors.grey,
-                      child: Text('설정2'),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: Text(
+                            "소요시간(ms): $progressTimeText ms",
+                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: Text(
+                            "-> 분: ${((endTime - startTime) ~/ 1000) ~/ 60} 분",
+                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: MaterialButton(
-                  minWidth: MediaQuery.of(context).size.width,
-                  height: 72,
-                  child: Text("보내기"),
-                  color: Colors.blue,
-                  onPressed: !_isOtaProgress ? () async {
+                  ],
+                ),
+                Divider(
+                  color: Colors.grey,
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: MaterialButton(
+                    minWidth: MediaQuery.of(context).size.width,
+                    onPressed: () async {
+                      if (isDeviceConnected) {
+                        await _deviceStateStreamSubscription?.cancel();
+                        await _otaAuthStreamSubscription?.cancel();
+                        await _indexSubscription?.cancel();
+                        await _otaControlPointSubscription?.cancel();
+                        await _bluetoothDevice?.disconnect();
+                        setState(() {
+                          isDeviceConnected = false;
+                          isUpdateFileRead = false;
+                          isAuthMessagePass = false;
+                          isOtaAuthCompleted = false;
+                          _isOtaProgress = false;
+                        });
 
-                    if (isOtaAuthCompleted && isUpdateFileRead) {
-                      if(!_isOtaProgress){
-                        startTime = DateTime.now().millisecondsSinceEpoch;
-                        await binWriteCharacteristic.write(chunks[0]);
+                        Get.back();
                       }
-                      _isOtaProgress = true;
-                    } else {
-                      Get.snackbar("인증오류", "인증을 완료해주세요", backgroundColor: Colors.red[100]);
-                    }
-                  }: null) ,
-            ),
-            Padding(
-              padding: EdgeInsets.all(15.0),
-              child: new CircularPercentIndicator(
-                radius: 240.0,
-                lineWidth: 12.0,
-                percent: _percent,
-                center: Text(
-                  "${(_percent * 100).toStringAsFixed(1)} %",
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                progressColor: Colors.green,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Text(
-                "Now/Total: $progressText 코드 조각",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-            Row(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Text(
-                    "소요시간(ms): $progressTimeText ms (${chunks.length} 코드 조각) ",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Text(
-                    "-> 분: ${((endTime - startTime) ~/ 1000) ~/ 60} 분",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    },
+                    color: isDeviceConnected ? Colors.red : Colors.grey,
+                    padding: EdgeInsets.all(16),
+                    child: Text(
+                      '연결종료',
+                      style: TextStyle(fontSize: 24),
+                    ),
                   ),
                 ),
               ],
             ),
-
-            Divider(),
-            MaterialButton(
-              onPressed: () async {
-                if (isDeviceConnected) {
-                  await _bluetoothDevice?.disconnect();
-                  isAuthMessagePass = false;
-                  Get.back();
-                }
-              },
-              color: isDeviceConnected ? Colors.red : Colors.grey,
-              child: Text('연결종료'),
-            ),
-          ],
+          ),
         ),
       ),
     );
