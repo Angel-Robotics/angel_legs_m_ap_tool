@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   runApp(MyApp());
@@ -36,6 +37,20 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  Future requestAppPermission() async {
+    Map<Permission, PermissionStatus> statuses = await [
+      Permission.location,
+      Permission.storage,
+    ].request();
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    requestAppPermission();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -44,15 +59,17 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-           ListTile(
-             title: Text("펌웨어 업데이트"),
-             subtitle: Text("통신모듈 펌웨어를 업데이트 합니다."),
-           ),
-              Text(
-                '$_counter',
-                style: Theme.of(context).textTheme.headline4,
+            ListTile(
+              title: Text("펌웨어 업데이트"),
+              subtitle: Text("통신모듈 펌웨어를 업데이트 합니다."),
+            ),
+            Divider(),
+            ListTile(
+              title: Text("통신모듈 검수"),
+              subtitle: Text("통신모듈 펌웨어를 검수합니다."),
             ),
           ],
         ),
