@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_angel_legs_m_ap_tool/ui/ota_update/ota_device_scan_page.dart';
+import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class ToolHomePage extends StatefulWidget {
@@ -46,6 +48,9 @@ class _MyHomePageState extends State<ToolHomePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             ListTile(
+              onTap: (){
+                Get.to(OtaDeviceScanPage());
+              },
               title: Text("펌웨어 업데이트"),
               subtitle: Text("통신모듈 펌웨어를 업데이트 합니다."),
             ),
