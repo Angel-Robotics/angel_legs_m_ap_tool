@@ -101,7 +101,18 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
                     child: AlertDialog(
                       title: Text("알림"),
                       content: Text("OTA 업데이트 작업이 완료되었습니다."),
-                      actions: [TextButton(onPressed: () {}, child: Text("확인"))],
+                      actions: [
+                        TextButton(
+                            onPressed: () async {
+                              await _deviceStateStreamSubscription?.cancel();
+                              await _otaAuthStreamSubscription?.cancel();
+                              await _indexSubscription?.cancel();
+                              await _otaControlPointSubscription?.cancel();
+                              Navigator.of(context).pop();
+                              Navigator.of(context).pop();
+                            },
+                            child: Text("확인"))
+                      ],
                     ),
                   );
                 });
