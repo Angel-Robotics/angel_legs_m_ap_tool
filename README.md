@@ -1,6 +1,12 @@
 # flutter_angel_legs_m_ap_tool
 
-A new Flutter application.
+## 엔젤렉스 M20 통신모듈 관리 툴 
+### 통신모듈 펌웨어 업데이트 
+- BLE 지원
+- OTA 사용 
+
+### 통신모듈 검수 기능 
+- 추후 추가 예정 
 
 ## Getting Started
 
