@@ -1,7 +1,7 @@
 name: flutter_angel_legs_m_ap_tool
 description: A new Flutter application.
 
-version: 1.0.1+2
+version: 1.0.2+3
 
 environment:
   sdk: ">=2.12.0-0 <3.0.0"
@@ -11,19 +11,24 @@ dependencies:
     sdk: flutter
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.2
+  cupertino_icons: ^1.0.3
   flutter_blue: ^0.8.0
   crypto: ^3.0.1
 
-  permission_handler: ^7.1.0
+  permission_handler: ^8.0.1
   get: ^4.1.4
-  file_picker: ^3.0.1
+  file_picker: ^3.0.2+2
   percent_indicator: ^3.0.1
 
 dev_dependencies:
+  flutter_launcher_icons: ^0.9.0
   flutter_test:
     sdk: flutter
 
+flutter_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/icon.png"
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
