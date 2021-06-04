@@ -283,7 +283,7 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
                     FilePickerResult? result = await FilePicker.platform.pickFiles();
                     if (result != null) {
                       print(result.files.single.name);
-                      if (!result.files.single.name!.contains(".bin")) {
+                      if (!result.files.single.name.contains(".bin")) {
                         setState(() {
                           isUpdateFileRead = false;
                         });
