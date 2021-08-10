@@ -26,7 +26,6 @@ class _MyHomePageState extends State<ToolHomePage> {
       Permission.location,
       Permission.storage,
     ].request();
-
   }
 
   @override
@@ -48,9 +47,7 @@ class _MyHomePageState extends State<ToolHomePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             ListTile(
-              onTap: (){
-                Get.to(OtaDeviceScanPage());
-              },
+              onTap: () => Get.to(OtaDeviceScanPage()),
               title: Text("펌웨어 업데이트"),
               subtitle: Text("통신모듈 펌웨어를 업데이트 합니다."),
             ),
@@ -62,7 +59,6 @@ class _MyHomePageState extends State<ToolHomePage> {
           ],
         ),
       ),
-
     );
   }
 }
