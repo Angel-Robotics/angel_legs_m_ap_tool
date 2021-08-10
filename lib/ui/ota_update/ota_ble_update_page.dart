@@ -74,8 +74,10 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
     _indexSubscription = indexNotifyCharacteristic.value.listen((event) {
       if (event.length > 0) {
         print(event);
-        int _index =
-            ((event[3] << 24) & 0xff000000) | ((event[2] << 16) & 0x00ff0000) | ((event[1] << 8) & 0x0000ff00) | (event[0] & 0x000000ff);
+        int _index = ((event[3] << 24) & 0xff000000) |
+            ((event[2] << 16) & 0x00ff0000) |
+            ((event[1] << 8) & 0x0000ff00) |
+            (event[0] & 0x000000ff);
         print("Notify index : $_index");
 
         if (_index == chunksLength.toInt()) {
@@ -172,8 +174,24 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
         } else if (event.length == 20) {
           if (otaHmac.length > 0) otaHmac.clear();
           otaHmac.addAll(event);
-          var hmacSha256 =
-              Hmac(sha1, [0x41, 0x4E, 0x47, 0x45, 0x4C, 0x20, 0x52, 0x4F, 0x42, 0x4F, 0x54, 0x49, 0x43, 0x53, 0x32, 0x31]); // HMAC-SHA256
+          var hmacSha256 = Hmac(sha1, [
+            0x41,
+            0x4E,
+            0x47,
+            0x45,
+            0x4C,
+            0x20,
+            0x52,
+            0x4F,
+            0x42,
+            0x4F,
+            0x54,
+            0x49,
+            0x43,
+            0x53,
+            0x32,
+            0x31
+          ]); // HMAC-SHA256
           var digest = hmacSha256.convert(otaMessage);
           print("HMAC digest as bytes: ${digest.bytes}");
           print("HMAC digest as hex string: $digest");

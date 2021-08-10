@@ -78,8 +78,10 @@ class FindDevicesScreen extends StatelessWidget {
                         .map((e) => Column(
                               children: [
                                 ListTile(
-                                  onTap: (){
-                                    Get.to(OtaBleUpdatePage(scanResult: e,));
+                                  onTap: () {
+                                    Get.to(OtaBleUpdatePage(
+                                      scanResult: e,
+                                    ));
                                   },
                                   title: Text(e.device.name == "" ? "unknown device" : e.device.name),
                                   subtitle: Text(e.rssi.toString()),
@@ -108,7 +110,8 @@ class FindDevicesScreen extends StatelessWidget {
             );
           } else {
             return FloatingActionButton(
-                child: Icon(Icons.search), onPressed: () => FlutterBlue.instance.startScan(timeout: Duration(seconds: 4)));
+                child: Icon(Icons.search),
+                onPressed: () => FlutterBlue.instance.startScan(timeout: Duration(seconds: 4)));
           }
         },
       ),
