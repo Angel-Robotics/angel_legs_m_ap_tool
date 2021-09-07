@@ -44,8 +44,8 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
   late BluetoothCharacteristic otaAuthCharacteristic;
 
   late Uint8List binDate;
-  var chunks = [];
   var chunkSize = 512;
+  var chunks = [];
   int totalBinSize = 0;
   num chunksLength = 0;
   ValueNotifier<String> progressText = ValueNotifier("");
@@ -119,7 +119,7 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
           });
         } else {
           try {
-            await Future.delayed(Duration(milliseconds: 200));
+            await Future.delayed(Duration(milliseconds: 150));
             binWriteCharacteristic.write(chunks[_index], withoutResponse: false);
           } catch (e) {
             print("[Error] ${e.toString()}");
@@ -254,10 +254,10 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
                       _isSettingCompleted = true;
                     });
                   }
-                }else if(event[1] == 0x01){
-                  if(event[2] == 0x01){
+                } else if (event[1] == 0x01) {
+                  if (event[2] == 0x01) {
                     Get.snackbar("알림", "업데이트 처리 완료", backgroundColor: Colors.green);
-                  }else  if(event[2] == 0x02){
+                  } else if (event[2] == 0x02) {
                     Get.snackbar("알림", "업데이트 오류 발생", backgroundColor: Colors.red);
                   }
                 }
@@ -270,6 +270,7 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
   }
 
   Future<void> readBinFile(File file) async {
+    print("file.path: ${file.path}");
     Uint8List tmp = await file.readAsBytes();
     print("파일 읽은 길이 : ${tmp.length}");
     binDate = tmp;
@@ -280,9 +281,10 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
       var end = (i + chunkSize < len) ? i + chunkSize : len;
       chunks.add(binDate.sublist(i, end));
     }
-    print(chunks);
+
+    print("chunks: $chunks");
     chunksLength = chunks.length;
-    print("chunks 길이: ${chunks.length}");
+    print("chunks 길이: $chunksLength");
     setState(() {
       isUpdateFileRead = true;
     });
@@ -308,15 +310,17 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
                   onTap: () async {
                     FilePickerResult? result = await FilePicker.platform.pickFiles();
                     if (result != null) {
-                      print(result.files.single.name);
+                      print("file name: ${result.files.single.name}");
                       if (!result.files.single.name.contains(".bin")) {
                         setState(() {
                           isUpdateFileRead = false;
                         });
-
                         Get.snackbar("오류", "올바른 파일을 선택해주세요", backgroundColor: Colors.orangeAccent);
                         return;
                       }
+                      chunks = [];
+                      totalBinSize = 0;
+                      chunksLength = 0;
                       File file = File(result.files.single.path);
                       readBinFile(file);
                     } else {
@@ -483,6 +487,8 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
                     ],
                   ),
                 ),
+                Text("총 사이즈: ${totalBinSize}"),
+                Text("총 Chunk: ${chunksLength}"),
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: MaterialButton(
