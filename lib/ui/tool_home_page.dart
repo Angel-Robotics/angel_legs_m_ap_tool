@@ -3,6 +3,8 @@ import 'package:flutter_angel_legs_m_ap_tool/ui/ota_update/ota_device_scan_page.
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'http_ota/http_ota_update.dart';
+
 class ToolHomePage extends StatefulWidget {
   ToolHomePage({Key? key, this.title}) : super(key: key);
 
@@ -49,6 +51,12 @@ class _MyHomePageState extends State<ToolHomePage> {
             ListTile(
               onTap: () => Get.to(OtaDeviceScanPage()),
               title: Text("펌웨어 업데이트"),
+              subtitle: Text("통신모듈 펌웨어를 업데이트 합니다."),
+            ),
+            Divider(),
+            ListTile(
+              onTap: () => Get.to(HttpOtaUpdate()),
+              title: Text("웹 펌웨어 업데이트"),
               subtitle: Text("통신모듈 펌웨어를 업데이트 합니다."),
             ),
             Divider(),

@@ -48,9 +48,9 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
   var chunkSize = 512;
   int totalBinSize = 0;
   num chunksLength = 0;
-  String progressText = "";
+  ValueNotifier<String> progressText = ValueNotifier("");
   String progressTimeText = "";
-  double _percent = 0.0;
+  ValueNotifier<double> _percent = ValueNotifier(0.0);
   int startTime = 0;
   int endTime = 0;
 
@@ -71,9 +71,8 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
   }
 
   void listenOtaIndexStream() {
-    _indexSubscription = indexNotifyCharacteristic.value.listen((event) {
+    _indexSubscription = indexNotifyCharacteristic.value.listen((event) async {
       if (event.length > 0) {
-        print(event);
         int _index = ((event[3] << 24) & 0xff000000) |
             ((event[2] << 16) & 0x00ff0000) |
             ((event[1] << 8) & 0x0000ff00) |
@@ -97,9 +96,7 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
                 barrierDismissible: false,
                 builder: (context) {
                   return WillPopScope(
-                    onWillPop: () async {
-                      return false;
-                    },
+                    onWillPop: () async => false,
                     child: AlertDialog(
                       title: Text("알림"),
                       content: Text("OTA 업데이트 작업이 완료되었습니다."),
@@ -121,12 +118,17 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
             // Get.back();
           });
         } else {
-          binWriteCharacteristic.write(chunks[_index]);
+          try {
+            await Future.delayed(Duration(milliseconds: 200));
+            binWriteCharacteristic.write(chunks[_index], withoutResponse: false);
+          } catch (e) {
+            print("[Error] ${e.toString()}");
+            binWriteCharacteristic.write(chunks[_index], withoutResponse: true);
+          }
         }
-        setState(() {
-          _percent = (_index / chunksLength);
-          progressText = "$_index / $chunksLength";
-        });
+
+        _percent.value = (_index / chunksLength);
+        progressText.value = "$_index / $chunksLength";
       }
     });
   }
@@ -252,6 +254,12 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
                       _isSettingCompleted = true;
                     });
                   }
+                }else if(event[1] == 0x01){
+                  if(event[2] == 0x01){
+                    Get.snackbar("알림", "업데이트 처리 완료", backgroundColor: Colors.green);
+                  }else  if(event[2] == 0x02){
+                    Get.snackbar("알림", "업데이트 오류 발생", backgroundColor: Colors.red);
+                  }
                 }
               }
             }
@@ -274,7 +282,7 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
     }
     print(chunks);
     chunksLength = chunks.length;
-    print("chunks길이: ${chunks.length}");
+    print("chunks 길이: ${chunks.length}");
     setState(() {
       isUpdateFileRead = true;
     });
@@ -309,7 +317,7 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
                         Get.snackbar("오류", "올바른 파일을 선택해주세요", backgroundColor: Colors.orangeAccent);
                         return;
                       }
-                      File file = File(result.files.single.path!);
+                      File file = File(result.files.single.path);
                       readBinFile(file);
                     } else {
                       // User canceled the picker
@@ -505,27 +513,36 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
                     Padding(
                       padding: EdgeInsets.all(15.0),
                       child: Center(
-                        child: CircularPercentIndicator(
-                          radius: 240.0,
-                          lineWidth: 24.0,
-                          circularStrokeCap: CircularStrokeCap.round,
-                          percent: _percent,
-                          progressColor: Colors.green,
-                          center: Text(
-                            "${(_percent * 100).toStringAsFixed(1)} %",
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
+                          child: ValueListenableBuilder<double>(
+                        builder: (context, value, child) {
+                          return CircularPercentIndicator(
+                            radius: 240.0,
+                            lineWidth: 24.0,
+                            circularStrokeCap: CircularStrokeCap.round,
+                            percent: value,
+                            progressColor: Colors.green,
+                            center: Text(
+                              "${(value * 100).toStringAsFixed(1)} %",
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                        ),
-                      ),
+                          );
+                        },
+                        valueListenable: _percent,
+                      )),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Text(
-                        "Now/Total: $progressText 코드 조각",
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      child: ValueListenableBuilder(
+                        valueListenable: progressText,
+                        builder: (context, value, child) {
+                          return Text(
+                            "Now/Total: $value 코드 조각",
+                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                          );
+                        },
                       ),
                     ),
                     Row(
