@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_angel_legs_m_ap_tool/ui/http_ota/network_scan_page.dart';
 import 'package:flutter_angel_legs_m_ap_tool/ui/ota_update/ota_device_scan_page.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -64,6 +65,12 @@ class _MyHomePageState extends State<ToolHomePage> {
               title: Text("통신모듈 검수"),
               subtitle: Text("통신모듈 펌웨어를 검수합니다."),
             ),
+            ListTile(
+              onTap: () => Get.to(NetworkScanPage()),
+              title: Text("네트워크 검사"),
+              subtitle: Text("네트워크 검사"),
+            ),
+            Divider(),
           ],
         ),
       ),
