@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_angel_legs_m_ap_tool/ui/common/bluetooth_on_off_widget.dart';
-import 'package:flutter_angel_legs_m_ap_tool/ui/common/device_common.dart';
+import 'package:flutter_angel_legs_m_ap_tool/device/device_common.dart';
 import 'package:flutter_angel_legs_m_ap_tool/ui/common/find_device_screen.dart';
 import 'package:flutter_angel_legs_m_ap_tool/ui/ota_update/ota_ble_update_page.dart';
 import 'package:flutter_blue/flutter_blue.dart';

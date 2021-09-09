@@ -3,7 +3,7 @@ import 'package:flutter_angel_legs_m_ap_tool/ui/ota_update/ota_ble_update_page.d
 import 'package:flutter_blue/flutter_blue.dart';
 import 'package:get/get.dart';
 
-import 'device_common.dart';
+import '../../device/device_common.dart';
 
 class FindDevicesScreen extends StatelessWidget {
   final Widget? nextPage;
