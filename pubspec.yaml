@@ -21,11 +21,14 @@ dependencies:
 
   permission_handler: ^8.1.4+2
   get: ^4.3.8
-  file_picker: ^4.0.1
+  file_picker: ^4.0.2
   percent_indicator: ^3.0.1
 
 
   flutter_reactive_ble: ^4.0.0
+
+  network_info_plus: ^1.1.0
+  lan_scanner: ^2.0.1
 
 dev_dependencies:
   flutter_launcher_icons: ^0.9.2
