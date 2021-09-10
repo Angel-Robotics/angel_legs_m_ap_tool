@@ -62,6 +62,12 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
   int startTime = 0;
   int endTime = 0;
 
+  Stopwatch stopwatch = Stopwatch();
+  double sendPeriodic = 100;
+
+  Timer? elapseTimer;
+  String elapseTimeText = "";
+
   Future connectBluetoothDevice() async {
     await widget.scanResult.device.connect();
   }
@@ -69,6 +75,7 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
   @override
   void dispose() {
     // TODO: implement dispose
+    elapseTimer?.cancel();
 
     widget.scanResult.device.disconnect();
     _deviceStateStreamSubscription?.cancel();
@@ -127,7 +134,7 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
           });
         } else {
           try {
-            await Future.delayed(Duration(milliseconds: 150));
+            await Future.delayed(Duration(milliseconds: sendPeriodic.toInt()));
             binWriteCharacteristic.write(chunks[_index], withoutResponse: false);
           } catch (e) {
             print("[Error] ${e.toString()}");
@@ -513,6 +520,33 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
                               ],
                             ),
                           ),
+                          SizedBox(
+                            height: 24,
+                          ),
+                          Text("전송주기"),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Slider(
+                                    min: 0,
+                                    max: 1000,
+                                    divisions: 20,
+                                    value: sendPeriodic,
+                                    onChanged: (v) {
+                                      setState(() {
+                                        sendPeriodic = v;
+                                      });
+                                    }),
+                              ),
+                              SizedBox(
+                                width: 24,
+                              ),
+                              SizedBox(width: 24, child: Text("${sendPeriodic}ms"))
+                            ],
+                          ),
+                          SizedBox(
+                            height: 24,
+                          ),
                           Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: MaterialButton(
@@ -529,6 +563,14 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
                                           if (!_isOtaProgress) {
                                             startTime = DateTime.now().millisecondsSinceEpoch;
                                             await binWriteCharacteristic.write(chunks[0]);
+                                            stopwatch.stop();
+                                            stopwatch.reset();
+                                            stopwatch.start();
+                                            elapseTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+                                              setState(() {
+                                                elapseTimeText = stopwatch.elapsedMilliseconds.toString();
+                                              });
+                                            });
                                           }
                                           setState(() {
                                             _isOtaProgress = true;
@@ -545,6 +587,8 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
                     ? Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
+                          Text("총 사이즈: $totalBinSize"),
+                          Text("총 Chunk: $chunksLength"),
                           Padding(
                             padding: EdgeInsets.all(15.0),
                             child: Center(
@@ -580,6 +624,13 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
                               },
                             ),
                           ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Text(
+                              "경과시간 : $elapseTimeText ms ",
+                              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                            ),
+                          ),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -610,7 +661,6 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
                   child: MaterialButton(
                     minWidth: MediaQuery.of(context).size.width,
                     onPressed: () async {
-
                       if (isDeviceConnected) {
                         await _deviceStateStreamSubscription?.cancel();
                         await _otaAuthStreamSubscription?.cancel();
@@ -624,7 +674,6 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
                           isOtaAuthCompleted = false;
                           _isOtaProgress = false;
                         });
-
                         Get.back();
                       }
                     },
