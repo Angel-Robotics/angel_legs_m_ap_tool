@@ -352,7 +352,7 @@ class _OtaBleUpdatePageState extends State<OtaBleUpdatePage> {
                                 chunks = [];
                                 totalBinSize = 0;
                                 chunksLength = 0;
-                                File file = File(result.files.single.path);
+                                File file = File(result.files.single.path ?? "");
                                 readBinFile(file);
                               } else {
                                 // User canceled the picker

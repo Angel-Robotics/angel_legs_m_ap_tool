@@ -1,12 +1,31 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.angelrobotics.flutter.angel.legs.m.ap.flutter_angel_legs_m_ap_tool">
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
-    <uses-permission android:name="android.permission.BLUETOOTH"/>
+
+    <!-- required for API 18 - 30 -->
+    <uses-permission
+            android:name="android.permission.BLUETOOTH"
+            android:maxSdkVersion="30" />
+    <uses-permission
+            android:name="android.permission.BLUETOOTH_ADMIN"
+            android:maxSdkVersion="30" />
+
+    <!-- required for API 23 - 30 -->
+    <uses-permission-sdk-23
+            android:name="android.permission.ACCESS_COARSE_LOCATION"
+            android:maxSdkVersion="30" />
+    <uses-permission-sdk-23
+            android:name="android.permission.ACCESS_FINE_LOCATION"
+            android:maxSdkVersion="30" />
+
+    <!-- API 31+ -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission
+            android:name="android.permission.BLUETOOTH_SCAN"
+            android:usesPermissionFlags="neverForLocation" />
 
     <application
         android:label="엔젤렉스M 통신모듈 툴"
