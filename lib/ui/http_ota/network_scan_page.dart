@@ -39,7 +39,7 @@ class NetworkScanPage extends StatefulWidget {
 }
 
 class _NetworkScanPageState extends State<NetworkScanPage> {
-  Set<DeviceModel> hosts = Set<DeviceModel>();
+  Set<HostModel> hosts = Set<HostModel>();
   LanScanner scanner = LanScanner();
   String subnet = "";
 
@@ -69,16 +69,16 @@ class _NetworkScanPageState extends State<NetworkScanPage> {
             return;
           }
           _isListen = true;
-          var stream = scanner.preciseScan(
+          var stream = scanner.icmpScan(
             // '192.168.0',
             "$subnet",
-            progressCallback: (ProgressModel progress) {
-              print('${progress.percent * 100}% $subnet.${progress.currIP}');
+            progressCallback: (String progress) {
+              // print('${progress.percent * 100}% $subnet.${progress.currIP}');
             },
           );
 
-          _streamSubscription = stream.listen((DeviceModel device) {
-            if (device.exists) {
+          _streamSubscription = stream.listen((HostModel device) {
+            if (device.isReachable) {
               setState(() {
                 hosts.add(device);
               });
@@ -120,14 +120,14 @@ class StatusCard extends StatelessWidget {
   }
 }
 
-Padding buildHostsListView(Set<DeviceModel> hosts) {
+Padding buildHostsListView(Set<HostModel> hosts) {
   return Padding(
     padding: const EdgeInsets.symmetric(horizontal: 5),
     child: ListView.builder(
       shrinkWrap: true,
       itemCount: hosts.length,
       itemBuilder: (context, index) {
-        DeviceModel currData = hosts.elementAt(index);
+        HostModel currData = hosts.elementAt(index);
 
         return Card(
           shape: RoundedRectangleBorder(
@@ -135,10 +135,10 @@ Padding buildHostsListView(Set<DeviceModel> hosts) {
           ),
           child: ListTile(
               leading: StatusCard(
-                color: currData.exists ? Colors.greenAccent : Colors.redAccent,
-                text: currData.exists ? "Online" : "Offline",
+                color: currData.isReachable ? Colors.greenAccent : Colors.redAccent,
+                text: currData.isReachable ? "Online" : "Offline",
               ),
-              title: Text(currData.ip ?? "N/A")),
+              title: Text(currData.ip)),
         );
       },
     ),
